@@ -1957,5 +1957,82 @@
        width="200"
        follows="left|top" />
     </panel>
+
+    <!--AI Agent-->
+    <panel
+     top_pad="5"
+     bottom="-1"
+     left="1"
+     right="-1"
+     follows="all"
+     label="AI Agent"
+     name="tab-ai-agent">
+        <check_box
+         control_name="FSAIAgentEnabled"
+         layout="topleft"
+         follows="left|top"
+         top="10"
+         left="10"
+         width="300"
+         height="20"
+         name="ai_agent_enabled"
+         label="Enable AI Agent (Comm menu → AI Agent)" />
+
+        <text
+         layout="topleft"
+         follows="left|top"
+         left="10"
+         top_pad="16"
+         height="16"
+         width="200">
+         Anthropic API Key:
+        </text>
+
+        <line_editor
+         control_name="FSAIAgentAPIKey"
+         layout="topleft"
+         follows="left|right|top"
+         left="10"
+         top_pad="4"
+         right="-10"
+         height="24"
+         name="ai_api_key"
+         label="sk-ant-..."
+         max_length="256" />
+
+        <text
+         layout="topleft"
+         follows="left|top"
+         left="10"
+         top_pad="16"
+         height="16"
+         width="200">
+         Model:
+        </text>
+
+        <line_editor
+         control_name="FSAIAgentModel"
+         layout="topleft"
+         follows="left|right|top"
+         left="10"
+         top_pad="4"
+         right="-10"
+         height="24"
+         name="ai_model"
+         max_length="128" />
+
+        <text
+         layout="topleft"
+         follows="left|top"
+         left="10"
+         top_pad="6"
+         height="32"
+         right="-10"
+         wrap="true"
+         text_color="LtGray_50">
+         Get an API key at console.anthropic.com. The default model is claude-haiku-4-5-20251001 (fast and low cost).
+        </text>
+    </panel>
+
 </tab_container>
 </panel>

@@ -28,6 +28,7 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "fscommon.h"
+#include "fsaiagent.h"
 #include "fslslbridge.h"
 #include "fslslbridgerequest.h"
 
@@ -546,6 +547,36 @@ bool FSLSLBridge::lslToViewer(std::string_view message, const LLUUID& fromID, co
         }
     }
     // </FS:PP>
+
+    // FSAIAgent bridge query: <AIQuery>question text here</AIQuery>
+    // The bridge script sends this to ask the AI agent a question; the
+    // response is spoken in local chat via [SAY:] if speaking is enabled,
+    // and always shown in the AI Agent floater.
+    else if (tag == "<AIQuery>")
+    {
+        static const std::string open_tag  = "<AIQuery>";
+        static const std::string close_tag = "</AIQuery>";
+        size_t text_start = message.find(open_tag);
+        size_t text_end   = message.find(close_tag);
+        if (text_start != std::string::npos && text_end != std::string::npos)
+        {
+            text_start += open_tag.size();
+            std::string query_text = static_cast<std::string>(
+                message.substr(text_start, text_end - text_start));
+            LLStringUtil::trim(query_text);
+            if (!query_text.empty() && !FSAIAgent::instance().isBusy())
+            {
+                FSAIAgent::instance().query(query_text,
+                    [](bool success, const std::string& response)
+                    {
+                        // Response goes to floater (and local chat if [SAY:] is present)
+                        FSAIAgent::instance().notifyFloater(
+                            success ? "Bridge" : "Bridge Error", response);
+                    });
+            }
+        }
+        status = true;
+    }
 
     return status;
 }

@@ -31,6 +31,7 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "fsfloaternearbychat.h"
+#include "fsaiagent.h"
 
 #include "chatbar_as_cmdline.h"
 #include "fschathistory.h"
@@ -301,6 +302,13 @@ void FSFloaterNearbyChat::addMessage(const LLChat& chat,bool archive,const LLSD 
     if (!chat.mMuted)
     {
         mChatHistory->appendMessage(chat, chat_args, input_append_params);
+    }
+
+    // Feed nearby agent/object chat to the AI agent context buffer
+    if ((chat.mSourceType == CHAT_SOURCE_AGENT || chat.mSourceType == CHAT_SOURCE_OBJECT)
+        && !chat.mText.empty() && !chat.mFromName.empty())
+    {
+        FSAIAgent::instance().addNearbyChatLine(chat.mFromName, chat.mText);
     }
 
     if (archive)

@@ -221,6 +221,66 @@
     <key>Value</key>
     <integer>1</integer>
   </map>
+  <key>FSAIAgentAPIKey</key>
+  <map>
+    <key>Comment</key>
+    <string>Anthropic API key for the in-viewer AI agent.</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>String</string>
+    <key>Value</key>
+    <string></string>
+  </map>
+
+  <key>FSAIAgentEnabled</key>
+  <map>
+    <key>Comment</key>
+    <string>Enable the in-viewer AI agent feature.</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>Boolean</string>
+    <key>Value</key>
+    <integer>0</integer>
+  </map>
+
+  <key>FSAIAgentEndpoint</key>
+  <map>
+    <key>Comment</key>
+    <string>LLM API endpoint for the in-viewer AI agent.</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>String</string>
+    <key>Value</key>
+    <string>https://api.anthropic.com/v1/messages</string>
+  </map>
+
+  <key>FSAIAgentModel</key>
+  <map>
+    <key>Comment</key>
+    <string>LLM model identifier for the in-viewer AI agent.</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>String</string>
+    <key>Value</key>
+    <string>claude-haiku-4-5-20251001</string>
+  </map>
+
+  <key>FSAIAgentSpeakInChat</key>
+  <map>
+    <key>Comment</key>
+    <string>Allow the AI agent to speak in local chat using [SAY:] commands.</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>Boolean</string>
+    <key>Value</key>
+    <integer>0</integer>
+  </map>
+
   <key>FSAdvancedTooltips</key>
   <map>
     <key>Comment</key>
