@@ -6,13 +6,33 @@ on:
     branches: [main, contribute]
     tags: [v*]
 
-
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Full history needed so --from-ref/--to-ref comparisons work
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: 3.x
-      - uses: pre-commit/action@v3.0.1
+      # On PRs: check only lines changed in this PR so that existing
+      # violations in unchanged code don't block contributors.
+      - name: pre-commit (PR diff only)
+        if: github.event_name == 'pull_request'
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: >-
+            --from-ref ${{ github.event.pull_request.base.sha }}
+            --to-ref   ${{ github.sha }}
+      # On push: check only lines introduced by this push.
+      # github.event.before is the SHA before the push; on a brand-new branch
+      # it is 0000…000, so fall back to HEAD~1 in that case.
+      - name: pre-commit (push diff only)
+        if: github.event_name != 'pull_request'
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: >-
+            --from-ref ${{ github.event.before == '0000000000000000000000000000000000000000' && 'HEAD~1' || github.event.before }}
+            --to-ref   ${{ github.sha }}

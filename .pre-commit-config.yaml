@@ -18,3 +18,11 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
         files: \.(cpp|c|m|mm|h|inl|py|glsl|cmake|yaml|sh)$
+  - repo: local
+    hooks:
+      - id: no-new-legacy-patterns
+        name: No new legacy C++ patterns (boost::bind, boost::thread, LLSingleton)
+        language: system
+        entry: python3 scripts/lint/check_no_new_legacy.py
+        types_or: [c++]
+        pass_filenames: true

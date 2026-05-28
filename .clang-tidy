@@ -1,0 +1,36 @@
+---
+# Clang-tidy configuration for Phoenix-Firestorm.
+#
+# This file enables a curated set of modernization checks that align with the
+# project's coding standards for NEW code.  Existing violations are not
+# addressed here; they are being migrated incrementally.
+#
+# To run against changed files locally (requires compile_commands.json):
+#   cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -B build && \
+#   git diff --name-only HEAD | xargs clang-tidy -p build
+
+Checks: >-
+  -*,
+  modernize-avoid-bind,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-default-member-init,
+  modernize-use-emplace,
+  modernize-loop-convert,
+  modernize-redundant-void-arg,
+  readability-redundant-smartptr-get,
+  readability-avoid-const-params-in-decls,
+  bugprone-use-after-move,
+  bugprone-infinite-loop,
+  bugprone-misplaced-operator-in-strlen-in-alloc,
+
+WarningsAsErrors: >-
+  modernize-avoid-bind
+
+HeaderFilterRegex: 'indra/.*\.(h|hpp)$'
+
+CheckOptions:
+  - key:   modernize-use-emplace.ContainersWithPushBack
+    value: '::std::vector;::std::deque;::std::list'
+  - key:   modernize-loop-convert.MinConfidence
+    value: reasonable

@@ -61,3 +61,52 @@ Could be fixed as follows:
    If the change includes a new feature, it would be beneficial to suggest how we should update the FS Wiki pages to help users understand the feature
 
 Thank you for your contribution!
+
+---
+
+## New code standards
+
+The following rules apply to **new code only**. Existing code is being migrated incrementally and will not block your PR.
+
+### Banned in new code
+
+| Pattern | Use instead | Reason |
+|---|---|---|
+| `boost::bind(…)` | a lambda `[…](…){ … }` | C++11 lambdas are clearer and already in this codebase |
+| `boost::thread` | `std::jthread` (C++20) | Unified threading model |
+| `class Foo : public LLSingleton<Foo>` | pass the dependency via constructor | Singletons make code untestable; see architecture notes below |
+| `LLThread` / `LLMutex` / `LLCondition` | `std::jthread` / `std::mutex` / `std::condition_variable` | Standard library equivalents |
+| `new T(…)` / `delete ptr` (owning) | `std::make_unique<T>(…)` / `std::make_shared<T>(…)` | RAII; no manual lifetime management |
+
+These are enforced automatically on PRs by the `no-new-legacy-patterns` pre-commit hook. Only **added lines** are checked, so touching a file with existing violations will not block your PR.
+
+### Preferred in new code
+
+- **Time**: `std::chrono::steady_clock` / `std::chrono::duration` instead of `LLTimer` / `LLFrameTimer`.
+- **Tests**: Catch2 for any new test files (existing TUT tests can stay as-is).
+- **Comments**: only when the *why* is non-obvious. Avoid restating what the code already says.
+
+### Dependency injection pattern
+
+When a new subsystem would have previously been an `LLSingleton`, use constructor injection instead:
+
+```cpp
+// Before (banned in new code):
+class FooManager : public LLSingleton<FooManager> { … };
+// Used as: FooManager::instance().doThing();
+
+// After:
+class FooManager {
+public:
+    explicit FooManager(BarService& bar, BazService& baz);
+    void doThing();
+private:
+    BarService& mBar;
+    BazService& mBaz;
+};
+// Callers hold a reference or pointer; tests substitute a mock.
+```
+
+### Local pre-commit setup
+
+Run `pip install pre-commit && pre-commit install` once in the repo root to activate the hooks locally before you commit.
