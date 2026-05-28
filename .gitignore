@@ -5,6 +5,7 @@
 *.orig
 *.patch
 *.pyc
+__pycache__/
 *.rej
 *.swp
 *.vcxproj
