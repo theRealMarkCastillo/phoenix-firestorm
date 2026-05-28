@@ -38,6 +38,8 @@
 #include "rlvdefines.h"
 #include <boost/regex.hpp>
 
+#include "fsareasearch.gen.h"
+
 class LLAvatarName;
 class LLTextBox;
 class LLViewerRegion;
@@ -218,6 +220,8 @@ private:
     friend class FSParcelChangeObserver;
     std::unique_ptr<FSParcelChangeObserver> mParcelChangedObserver;
 
+    FSAreaSearchUI mUI{};
+
     LLTabContainer* mTab{ nullptr };
     FSPanelAreaSearchList* mPanelList{ nullptr };
     FSPanelAreaSearchFind* mPanelFind{ nullptr };
@@ -284,6 +288,7 @@ public:
     virtual ~FSPanelAreaSearchList();
 
     bool postBuild() override;
+    void initUI(const FSAreaSearchUI& ui);
 
     void setCounterText();
     void setCounterText(LLStringUtil::format_map_t args);
@@ -340,6 +345,7 @@ public:
     virtual ~FSPanelAreaSearchFind() = default;
 
     bool postBuild() override;
+    void initUI(const FSAreaSearchUI& ui);
     bool handleKeyHere(KEY key,MASK mask) override;
 
     LLLineEditor* mNameLineEditor{ nullptr };
@@ -373,6 +379,7 @@ public:
     virtual ~FSPanelAreaSearchFilter() = default;
 
     bool postBuild() override;
+    void initUI(const FSAreaSearchUI& ui);
 
 private:
     void onCommitCheckbox();
@@ -442,6 +449,7 @@ public:
     virtual ~FSPanelAreaSearchAdvanced() = default;
 
     bool postBuild() override;
+    void initUI(const FSAreaSearchUI& ui);
 
     LLCheckBoxCtrl* mCheckboxClickTouch{ nullptr };
     LLCheckBoxCtrl* mCheckboxClickBuy{ nullptr };
