@@ -28,6 +28,8 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "fscommon.h"
+#include "fscommonsettings.h"
+#include "isettingsreader.h"
 #include "fsradar.h"
 #include "llagent.h"
 #include "llagentbenefits.h"
@@ -56,6 +58,26 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 using namespace boost::posix_time;
 using namespace boost::gregorian;
+
+// Production adapter: a read-only ISettingsReader backed by a live LLControlGroup
+// (e.g. gSavedSettings). Lives here for now; promote to a shared header when a
+// second subsystem needs it.
+namespace
+{
+class LLControlGroupSettingsReader : public ISettingsReader
+{
+public:
+    explicit LLControlGroupSettingsReader(LLControlGroup& group) : mGroup(group) {}
+
+    bool        getBOOL(const std::string& key)   const override { return mGroup.getBOOL(key); }
+    std::string getString(const std::string& key) const override { return mGroup.getString(key); }
+    S32         getS32(const std::string& key)    const override { return mGroup.getS32(key); }
+    F32         getF32(const std::string& key)    const override { return mGroup.getF32(key); }
+
+private:
+    LLControlGroup& mGroup;
+};
+}
 
 static const std::string LL_LINDEN = "Linden";
 static const std::string LL_MOLE = "Mole";
@@ -462,14 +484,16 @@ bool FSCommon::isDefaultTexture(const LLUUID& asset_id)
 
 bool FSCommon::isLegacySkin()
 {
-    static bool is_legacy_skin = gSavedSettings.getString("FSInternalSkinCurrent") == "Vintage";
+    // Skin does not change at runtime, so resolve once. The pure predicate lives
+    // in fscommonsettings.cpp behind ISettingsReader for testability.
+    static bool is_legacy_skin = isLegacySkin(LLControlGroupSettingsReader(gSavedSettings));
     return is_legacy_skin;
 }
 
 bool FSCommon::isFilterEditorKeyCombo(KEY key, MASK mask)
 {
-    static LLCachedControl<bool> select_search_on_shortcut(gSavedSettings, "FSSelectLocalSearchEditorOnShortcut");
-    return (mask == MASK_CONTROL && key == 'F' && select_search_on_shortcut);
+    LLControlGroupSettingsReader reader(gSavedSettings);
+    return isFilterEditorKeyCombo(key, mask, reader);
 }
 
 LLUUID FSCommon::getGroupForRezzing()

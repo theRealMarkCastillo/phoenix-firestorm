@@ -111,6 +111,7 @@ set(viewer_SOURCE_FILES
     fschathistory.cpp
     fschatoptionsmenu.cpp
     fscommon.cpp
+    fscommonsettings.cpp
     fsconsoleutils.cpp
     fscontactsfriendsmenu.cpp
     fsdata.cpp
@@ -957,6 +958,7 @@ set(viewer_HEADER_FILES
     aoset.h
     appcontext.h
     iaoengine.h
+    isettingsreader.h
     chatbar_as_cmdline.h
     daeexport.h
     dialogstack.h
@@ -978,6 +980,7 @@ set(viewer_HEADER_FILES
     fschatparticipants.h
     fsdispatchclassifiedclickthrough.h
     fscommon.h
+    fscommonsettings.h
     fsconsoleutils.h
     fscontactsfriendsmenu.h
     fsdata.h
@@ -3239,6 +3242,24 @@ if (LL_TESTS)
       )
       add_test(NAME fs_keywordmatcher_test COMMAND fs_keywordmatcher_test)
 
+      add_executable(fs_fscommonsettings_test
+          tests/catch2/fscommonsettings_test.cpp
+          fscommonsettings.cpp
+      )
+      target_compile_definitions(fs_fscommonsettings_test PRIVATE
+          FS_FSCOMMONSETTINGS_TEST_BUILD
+      )
+      target_include_directories(fs_fscommonsettings_test PRIVATE
+          ${CMAKE_CURRENT_SOURCE_DIR}
+          ${CATCH2_INCLUDE_DIR}
+      )
+      target_link_libraries(fs_fscommonsettings_test PRIVATE llcommon)
+      set_target_properties(fs_fscommonsettings_test PROPERTIES
+          CXX_STANDARD 20
+          DISABLE_PRECOMPILE_HEADERS ON
+      )
+      add_test(NAME fs_fscommonsettings_test COMMAND fs_fscommonsettings_test)
+
       # Convenience aggregate: `cmake --build . --target fs_tests` builds and runs
       # every Firestorm Catch2 suite in sequence. Add new test targets to both
       # lists below as they are created.
@@ -3246,11 +3267,13 @@ if (LL_TESTS)
           fs_appcontext_test
           fs_bridgecommandhandler_test
           fs_keywordmatcher_test
+          fs_fscommonsettings_test
       )
       add_custom_target(fs_tests
           COMMAND $<TARGET_FILE:fs_appcontext_test>
           COMMAND $<TARGET_FILE:fs_bridgecommandhandler_test>
           COMMAND $<TARGET_FILE:fs_keywordmatcher_test>
+          COMMAND $<TARGET_FILE:fs_fscommonsettings_test>
           COMMENT "Running all Firestorm Catch2 unit tests"
           VERBATIM
       )
