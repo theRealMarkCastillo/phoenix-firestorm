@@ -34,6 +34,7 @@
 
 #include "stdtypes.h"
 
+#include <chrono>
 #include <string>
 #include <list>
 // units conversions
@@ -107,8 +108,35 @@ public:
 
     bool getStarted() const { return mStarted; }
 
-
     static U64 getCurrentClockCount();      // Returns the raw clockticks
+
+    // std::chrono API — new code should prefer these over the F32/F64 variants.
+    // All return values are zero-cost wrappers around the existing F64 accessors.
+
+    // Elapsed time as any std::chrono::duration.
+    // Example: timer.elapsed<std::chrono::milliseconds>() > 100ms
+    template<class Duration = std::chrono::duration<double>>
+    Duration elapsed() const
+    {
+        return std::chrono::duration_cast<Duration>(
+            std::chrono::duration<double>(getElapsedTimeF64()));
+    }
+
+    // Whether the timer has been running for at least `d`.
+    // Example: if (timer.elapsedAtLeast(500ms)) { ... }
+    template<class Rep, class Period>
+    bool elapsedAtLeast(std::chrono::duration<Rep, Period> d) const
+    {
+        return elapsed<std::chrono::duration<Rep, Period>>() >= d;
+    }
+
+    // App uptime as a chrono duration (mirrors getElapsedSeconds() but typed).
+    template<class Duration = std::chrono::duration<double>>
+    static Duration appUptime()
+    {
+        return std::chrono::duration_cast<Duration>(
+            std::chrono::duration<double>(static_cast<double>(getElapsedSeconds())));
+    }
 };
 
 //
