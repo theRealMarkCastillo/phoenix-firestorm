@@ -28,6 +28,7 @@
 #define FS_KEYWORDS_H
 
 #include "llsingleton.h"
+#include "fskeywordmatcher.h"
 
 class LLChat;
 
@@ -42,7 +43,7 @@ public:
     void static notify(const LLChat& chat); // <FS:PP> FIRE-10178: Keyword Alerts in group IM do not work unless the group is in the foreground
 
 private:
-    std::vector<std::string> mWordList;
+    FSKeywordMatcher mMatcher;
 };
 
 #endif // FS_KEYWORDS_H

@@ -74,7 +74,11 @@ protected:
 
 // ----------------------------------------------------
 
-class AOEngine : public LLSingleton<AOEngine>
+// IAOEngine is defined in iaoengine.h to keep it dependency-light enough for
+// unit tests; AOEngine implements the interface.
+#include "iaoengine.h"
+
+class AOEngine : public LLSingleton<AOEngine>, public IAOEngine
 {
     LLSINGLETON(AOEngine);
     ~AOEngine();
@@ -87,24 +91,24 @@ public:
         CyclePrevious
     };
 
-    void   enable(bool enable);
-    void   enableStands(bool enable_stands);
-    LLUUID override(const LLUUID& motion, bool start);
-    void   tick();
-    void   update();
+    void   enable(bool enable) override;
+    void   enableStands(bool enable_stands) override;
+    LLUUID override(const LLUUID& motion, bool start) override;
+    void   tick() override;
+    void   update() override;
     void   reload(bool fromTimer);
     void   reloadStateAnimations(AOSet* set, AOSet::AOState* state);
     void   clear(bool fromTimer);
 
-    const LLUUID& getAOFolder() const;
+    const LLUUID& getAOFolder() const override;
 
     void addSet(const std::string& name, inventory_func_type callback, bool reload = true);
     bool removeSet(AOSet* set);
 
     void addAnimation(const AOSet* set, AOSet::AOState* state, const LLInventoryItem* item, bool reload = true);
     bool removeAnimation(const AOSet* set, AOSet::AOState* state, S32 index);
-    void checkSitCancel();
-    void checkBelowWater(bool check_underwater);
+    void checkSitCancel() override;
+    void checkBelowWater(bool check_underwater) override;
 
     bool importNotecard(const LLInventoryItem* item);
     void processImport(bool from_timer);
@@ -119,7 +123,7 @@ public:
     const AOSet*          getCurrentSet() const;
     const AOSet::AOState* getCurrentState() const;
 
-    void   inMouselook(bool mouselook);
+    void   inMouselook(bool mouselook) override;
     void   selectSet(AOSet* set);
     AOSet* selectSetByName(std::string_view name);
     AOSet* getSetByName(std::string_view name) const;
@@ -128,7 +132,7 @@ public:
     static void onLoginComplete();
 
     const std::vector<AOSet*> getSetList() const;
-    const std::string         getCurrentSetName() const;
+    const std::string         getCurrentSetName() const override;
     const AOSet*              getDefaultSet() const;
     bool                      renameSet(AOSet* set, std::string_view name);
 
@@ -140,7 +144,7 @@ public:
     void setRandomize(AOSet::AOState* state, bool randomize);
     void setCycleTime(AOSet::AOState* state, F32 time);
 
-    void saveSettings();
+    void saveSettings() override;
 
     typedef boost::signals2::signal<void()> updated_signal_t;
     boost::signals2::connection setReloadCallback(const updated_signal_t::slot_type& cb)
@@ -155,6 +159,7 @@ public:
     };
 
 protected:
+    void initSingleton() override;
     void init();
 
     void setLastMotion(const LLUUID& motion);

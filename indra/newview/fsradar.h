@@ -54,8 +54,24 @@ typedef enum e_radar_payment_info_flag
     FSRADAR_PAYMENT_INFO_USED
 } ERadarPaymentInfoFlag;
 
+// Pure-virtual interface for the Radar subsystem.
+class IFSRadar
+{
+public:
+    virtual ~IFSRadar() = default;
+
+    virtual void startTracking(const LLUUID& avatar_id) = 0;
+    virtual void zoomAvatar(const LLUUID& avatar_id, std::string_view name) = 0;
+    virtual void teleportToAvatar(const LLUUID& targetAv) = 0;
+    virtual void requestRadarChannelAlertSync() = 0;
+    virtual void updateNames() = 0;
+    virtual void updateName(const LLUUID& avatar_id) = 0;
+    virtual void updateNotes(const LLUUID& avatar_id, std::string_view notes) = 0;
+    virtual void getCurrentData(std::vector<LLSD>& entries, LLSD& stats) const = 0;
+};
+
 class FSRadar
-    : public LLSingleton<FSRadar>
+    : public LLSingleton<FSRadar>, public IFSRadar
 {
     LOG_CLASS(FSRadar);
 
@@ -66,20 +82,20 @@ public:
     using entry_map_t = std::unordered_map<LLUUID, std::shared_ptr<FSRadarEntry>>;
     entry_map_t getRadarList() { return mEntryList; }
 
-    void startTracking(const LLUUID& avatar_id);
-    void zoomAvatar(const LLUUID& avatar_id, std::string_view name);
-    void teleportToAvatar(const LLUUID& targetAv);
-    void requestRadarChannelAlertSync();
-    void updateNames();
-    void updateName(const LLUUID& avatar_id);
-    void updateNotes(const LLUUID& avatar_id, std::string_view notes);
+    void startTracking(const LLUUID& avatar_id) override;
+    void zoomAvatar(const LLUUID& avatar_id, std::string_view name) override;
+    void teleportToAvatar(const LLUUID& targetAv) override;
+    void requestRadarChannelAlertSync() override;
+    void updateNames() override;
+    void updateName(const LLUUID& avatar_id) override;
+    void updateNotes(const LLUUID& avatar_id, std::string_view notes) override;
 
     static void onRadarNameFmtClicked(const LLSD& userdata);
     static bool radarNameFmtCheck(const LLSD& userdata);
     static void onRadarReportToClicked(const LLSD& userdata);
     static bool radarReportToCheck(const LLSD& userdata);
 
-    void getCurrentData(std::vector<LLSD>& entries, LLSD& stats) const { entries = mRadarEntriesData; stats = mAvatarStats; }
+    void getCurrentData(std::vector<LLSD>& entries, LLSD& stats) const override { entries = mRadarEntriesData; stats = mAvatarStats; }
     std::shared_ptr<FSRadarEntry> getEntry(const LLUUID& avatar_id);
 
     // internals

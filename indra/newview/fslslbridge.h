@@ -33,14 +33,52 @@
 #include "llinventoryobserver.h"
 #include "lleventtimer.h"
 
+#include <memory>
+
 class FSLSLBridgeRequestResponder;
+class LLViewerObject;
+class LLViewerJointAttachment;
+class FSBridgeCommandHandler;
+class IBridgeEnvironment;
+
+// Pure-virtual interface for the LSL Bridge subsystem.
+// Callers that only send/receive messages or query bridge state should depend
+// on IFSLSLBridge rather than FSLSLBridge to allow test substitution.
+class IFSLSLBridge
+{
+public:
+    using Callback_t = std::function<void(const LLSD&)>;
+
+    virtual ~IFSLSLBridge() = default;
+
+    virtual bool lslToViewer(std::string_view message, const LLUUID& fromID, const LLUUID& ownerID) = 0;
+    virtual bool viewerToLSL(std::string_view message, Callback_t callback = nullptr) = 0;
+
+    virtual bool updateBoolSettingValue(const std::string& msgVal) = 0;
+    virtual bool updateBoolSettingValue(const std::string& msgVal, bool contentVal) = 0;
+    virtual void updateIntegrations() = 0;
+
+    virtual void initBridge() = 0;
+    virtual void recreateBridge() = 0;
+    virtual void processAttach(LLViewerObject* object, const LLViewerJointAttachment* attachment) = 0;
+    virtual void processDetach(LLViewerObject* object, const LLViewerJointAttachment* attachment) = 0;
+
+    virtual bool                  getBridgeCreating() const = 0;
+    virtual LLViewerInventoryItem* getBridge() const = 0;
+    virtual bool                  canUseBridge() = 0;
+    virtual bool                  isBridgeValid() const = 0;
+    virtual std::string           currentFullName() const = 0;
+    virtual LLUUID                getBridgeFolder() const = 0;
+    virtual LLUUID                getAttachedID() const = 0;
+    virtual bool                  canDetach(const LLUUID& item_id) = 0;
+};
 
 const std::string LIB_ROCK_NAME = "Rock - medium, round";
 const std::string FS_BRIDGE_NAME = "#Firestorm LSL Bridge v";
 const U8 FS_BRIDGE_POINT = 31;
 const std::string FS_BRIDGE_ATTACHMENT_POINT_NAME = "Center 2";
 
-class FSLSLBridge : public LLSingleton<FSLSLBridge>, public LLVOInventoryListener
+class FSLSLBridge : public LLSingleton<FSLSLBridge>, public LLVOInventoryListener, public IFSLSLBridge
 {
     friend class FSLSLBridgeScriptCallback;
     friend class FSLSLBridgeRezCallback;
@@ -65,33 +103,33 @@ public:
 
     typedef std::function<void(const LLSD &)> Callback_t;
 
-    bool lslToViewer(std::string_view message, const LLUUID& fromID, const LLUUID& ownerID);
-    bool viewerToLSL(std::string_view message, Callback_t = nullptr);
+    bool lslToViewer(std::string_view message, const LLUUID& fromID, const LLUUID& ownerID) override;
+    bool viewerToLSL(std::string_view message, Callback_t = nullptr) override;
 
-    bool updateBoolSettingValue(const std::string& msgVal);
-    bool updateBoolSettingValue(const std::string& msgVal, bool contentVal);
-    void updateIntegrations();
+    bool updateBoolSettingValue(const std::string& msgVal) override;
+    bool updateBoolSettingValue(const std::string& msgVal, bool contentVal) override;
+    void updateIntegrations() override;
 
-    void initBridge();
-    void recreateBridge();
-    void processAttach(LLViewerObject* object, const LLViewerJointAttachment* attachment);
-    void processDetach(LLViewerObject* object, const LLViewerJointAttachment* attachment);
+    void initBridge() override;
+    void recreateBridge() override;
+    void processAttach(LLViewerObject* object, const LLViewerJointAttachment* attachment) override;
+    void processDetach(LLViewerObject* object, const LLViewerJointAttachment* attachment) override;
 
-    bool getBridgeCreating() const { return mBridgeCreating; };
+    bool getBridgeCreating() const override { return mBridgeCreating; };
     void setBridgeCreating(bool status) { mBridgeCreating = status; };
 
     void setBridge(LLViewerInventoryItem* item) { mpBridge = item; };
-    LLViewerInventoryItem* getBridge() const { return mpBridge; };
-    bool canUseBridge();
-    bool isBridgeValid() const { return nullptr != mpBridge; }
+    LLViewerInventoryItem* getBridge() const override { return mpBridge; };
+    bool canUseBridge() override;
+    bool isBridgeValid() const override { return nullptr != mpBridge; }
 
     void checkBridgeScriptName();
-    std::string currentFullName() const { return mCurrentFullName; }
+    std::string currentFullName() const override { return mCurrentFullName; }
 
-    LLUUID getBridgeFolder() const { return mBridgeFolderID; }
-    LLUUID getAttachedID() const { return mBridgeUUID; }
+    LLUUID getBridgeFolder() const override { return mBridgeFolderID; }
+    LLUUID getAttachedID() const override { return mBridgeUUID; }
 
-    bool canDetach(const LLUUID& item_id);
+    bool canDetach(const LLUUID& item_id) override;
 
     static void onIdle(void* userdata);
     void setTimerResult(TimerResult result);
@@ -103,6 +141,14 @@ public:
                           void* user_data) override;
 
 private:
+    void initSingleton() override;
+
+    // Pure-logic command dispatch (getViewerInfo / getSettingValue /
+    // showNotification / openFloater), extracted for unit testing. Invoked from
+    // lslToViewer only after the bridge-identity security gate.
+    std::unique_ptr<IBridgeEnvironment>     mBridgeEnv;
+    std::unique_ptr<FSBridgeCommandHandler> mCommandHandler;
+
     std::string             mCurrentURL;
     bool                    mBridgeCreating;
     bool                    mAllowDetach;

@@ -29,6 +29,7 @@
 
 #include "aoengine.h"
 #include "aoset.h"
+#include "appcontext.h"
 
 #include "llagent.h"
 #include "llagentcamera.h"
@@ -100,6 +101,11 @@ AOEngine::~AOEngine()
     {
         mRegionChangeConnection.disconnect();
     }
+}
+
+void AOEngine::initSingleton()
+{
+    gAppContext.aoEngine = this;
 }
 
 void AOEngine::init()

@@ -27,6 +27,7 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "fsradar.h"
+#include "appcontext.h"
 
 // libs
 #include "llavatarnamecache.h"
@@ -136,6 +137,7 @@ FSRadar::~FSRadar()
 
 void FSRadar::initSingleton()
 {
+    gAppContext.radar = this;
     mRadarListUpdater = std::make_unique<FSRadarListUpdater>(std::bind(&FSRadar::updateRadarList, this));
 }
 

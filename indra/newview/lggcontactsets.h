@@ -51,7 +51,44 @@ constexpr char CS_GLOBAL_SETTINGS[] = "globalSettings";
 constexpr char CS_PSEUDONYM[] = "--- ---";
 constexpr char CS_PSEUDONYM_QUOTED[] = "'--- ---'";
 
-class LGGContactSets : public LLSingleton<LGGContactSets>
+// Pure-virtual interface for the Contact Sets subsystem.
+// ContactSetType and ContactSetAutoresponseMode are defined above and are
+// available to any translation unit that includes this header.
+class IContactSets
+{
+public:
+    using string_vec_t = std::vector<std::string>;
+
+    virtual ~IContactSets() = default;
+
+    virtual void loadFromDisk() = 0;
+
+    virtual LLColor4     getSetColor(std::string_view set_name) const = 0;
+
+    virtual bool hasPseudonym(const LLUUID& friend_id) const = 0;
+    virtual bool hasPseudonym(const uuid_vec_t& ids) const = 0;
+    virtual bool checkCustomName(const LLUUID& id, bool& dn_removed, std::string& pseudonym) const = 0;
+
+    virtual string_vec_t getFriendSets(const LLUUID& friend_id) const = 0;
+    virtual string_vec_t getAllContactSets() const = 0;
+
+    virtual void addToSet(const uuid_vec_t& ids, std::string_view set_name) = 0;
+    virtual void removeFriendFromSet(const LLUUID& friend_id, std::string_view set_name, bool save_changes = true) = 0;
+    virtual void removeFriendFromAllSets(const LLUUID& friend_id, bool save_changes = true) = 0;
+    virtual bool isFriendInSet(const LLUUID& friend_id, std::string_view set_name) const = 0;
+    virtual bool hasFriendColorThatShouldShow(const LLUUID& friend_id, ContactSetType type) const = 0;
+    virtual bool hasFriendColorThatShouldShow(const LLUUID& friend_id, ContactSetType type, LLColor4& color) const = 0;
+
+    virtual bool isValidSet(std::string_view set_name) const = 0;
+    virtual bool isNonFriend(const LLUUID& non_friend_id) const = 0;
+    virtual bool isFriendInAnySet(const LLUUID& friend_id) const = 0;
+    virtual bool notifyForFriend(const LLUUID& friend_id) const = 0;
+    virtual bool getAutoresponseForFriend(const LLUUID& friend_id, ContactSetAutoresponseMode mode, std::string& response) const = 0;
+    virtual bool isInternalSetName(std::string_view set_name) const = 0;
+    virtual bool hasSets() const = 0;
+};
+
+class LGGContactSets : public LLSingleton<LGGContactSets>, public IContactSets
 {
     LOG_CLASS(LGGContactSets);
 
@@ -62,10 +99,10 @@ public:
     typedef std::vector<std::string> string_vec_t;
     typedef std::unordered_set<LLUUID> uuid_set_t;
 
-    void loadFromDisk();
+    void loadFromDisk() override;
 
     void setSetColor(std::string_view set_name, const LLColor4& color);
-    LLColor4 getSetColor(std::string_view set_name) const;
+    LLColor4 getSetColor(std::string_view set_name) const override;
     LLColor4 getFriendColor(const LLUUID& friend_id, std::string_view ignored_set_name = "") const;
     LLColor4 colorize(const LLUUID& uuid, LLColor4 color, ContactSetType type) const;
 
@@ -73,51 +110,51 @@ public:
     LLColor4 getDefaultColor() const { return mDefaultColor; };
 
     std::string getPseudonym(const LLUUID& friend_id) const;
-    bool hasPseudonym(const LLUUID& friend_id) const;
-    bool hasPseudonym(const uuid_vec_t& ids) const;
+    bool hasPseudonym(const LLUUID& friend_id) const override;
+    bool hasPseudonym(const uuid_vec_t& ids) const override;
     void clearPseudonym(const LLUUID& friend_id, bool save_changes = true);
 
     void removeDisplayName(const LLUUID& friend_id);
     bool hasDisplayNameRemoved(const LLUUID& friend_id) const;
     bool hasDisplayNameRemoved(const uuid_vec_t& ids) const;
 
-    bool checkCustomName(const LLUUID& id, bool& dn_removed, std::string& pseudonym) const;
+    bool checkCustomName(const LLUUID& id, bool& dn_removed, std::string& pseudonym) const override;
 
-    string_vec_t getFriendSets(const LLUUID& friend_id) const;
-    string_vec_t getAllContactSets() const;
+    string_vec_t getFriendSets(const LLUUID& friend_id) const override;
+    string_vec_t getAllContactSets() const override;
 
-    void addToSet(const uuid_vec_t&, std::string_view set_name);
-    void removeFriendFromSet(const LLUUID& friend_id, std::string_view set_name, bool save_changes = true);
-    void removeFriendFromAllSets(const LLUUID& friend_id, bool save_changes = true);
-    bool isFriendInSet(const LLUUID& friend_id, std::string_view set_name) const;
-    bool hasFriendColorThatShouldShow(const LLUUID& friend_id, ContactSetType type) const;
-    bool hasFriendColorThatShouldShow(const LLUUID& friend_id, ContactSetType type, LLColor4& color) const;
+    void addToSet(const uuid_vec_t&, std::string_view set_name) override;
+    void removeFriendFromSet(const LLUUID& friend_id, std::string_view set_name, bool save_changes = true) override;
+    void removeFriendFromAllSets(const LLUUID& friend_id, bool save_changes = true) override;
+    bool isFriendInSet(const LLUUID& friend_id, std::string_view set_name) const override;
+    bool hasFriendColorThatShouldShow(const LLUUID& friend_id, ContactSetType type) const override;
+    bool hasFriendColorThatShouldShow(const LLUUID& friend_id, ContactSetType type, LLColor4& color) const override;
 
     void addSet(std::string_view set_name);
     bool renameSet(std::string_view set_name, std::string_view new_set_name);
     void removeSet(std::string_view set_name);
-    bool isValidSet(std::string_view set_name) const;
+    bool isValidSet(std::string_view set_name) const override;
 
     void removeNonFriendFromList(const LLUUID& non_friend_id, bool save_changes = true);
-    bool isNonFriend(const LLUUID& non_friend_id) const;
-    bool isFriendInAnySet(const LLUUID& friend_id) const;
+    bool isNonFriend(const LLUUID& non_friend_id) const override;
+    bool isFriendInAnySet(const LLUUID& friend_id) const override;
     uuid_vec_t getFriendsInAnySet() const;
     uuid_vec_t getListOfNonFriends() const;
     uuid_vec_t getListOfPseudonymAvs() const;
 
-    bool notifyForFriend(const LLUUID& friend_id) const;
+    bool notifyForFriend(const LLUUID& friend_id) const override;
     void setNotifyForSet(std::string_view set_name, bool notify);
     bool getNotifyForSet(std::string_view set_name) const;
     void setSortByOnlineStatusForSet(std::string_view set_name, bool sort_by_online_status);
     bool getSortByOnlineStatusForSet(std::string_view set_name) const;
     void setAutoresponseForSet(std::string_view set_name, ContactSetAutoresponseMode mode, bool enabled, std::string_view response);
     void getAutoresponseForSet(std::string_view set_name, ContactSetAutoresponseMode mode, bool& enabled, std::string& response) const;
-    bool getAutoresponseForFriend(const LLUUID& friend_id, ContactSetAutoresponseMode mode, std::string& response) const;
+    bool getAutoresponseForFriend(const LLUUID& friend_id, ContactSetAutoresponseMode mode, std::string& response) const override;
 
     bool callbackAliasReset(const LLSD& notification, const LLSD& response);
 
-    bool isInternalSetName(std::string_view set_name) const;
-    bool hasSets() const { return !mContactSets.empty(); }
+    bool isInternalSetName(std::string_view set_name) const override;
+    bool hasSets() const override { return !mContactSets.empty(); }
 
     class ContactSet
     {
@@ -161,6 +198,8 @@ public:
     // [/FS:CR]
 
 private:
+    void initSingleton() override;
+
     void toneDownColor(LLColor4& color) const;
     uuid_vec_t getFriendsInSet(std::string_view set_name) const;
 

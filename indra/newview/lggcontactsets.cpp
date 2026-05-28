@@ -20,6 +20,7 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "lggcontactsets.h"
+#include "appcontext.h"
 
 #include "fscommon.h"
 #include "fsdata.h"
@@ -87,6 +88,11 @@ namespace
 
 LGGContactSets::LGGContactSets()
 {
+}
+
+void LGGContactSets::initSingleton()
+{
+    gAppContext.contactSets = this;
 }
 
 LGGContactSets::~LGGContactSets()

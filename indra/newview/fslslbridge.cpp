@@ -30,6 +30,8 @@
 #include "fscommon.h"
 #include "fsaiagent.h"
 #include "fslslbridge.h"
+#include "fsbridgecommandhandler.h"
+#include "appcontext.h"
 #include "fslslbridgerequest.h"
 
 #include "apr_base64.h" // For getScriptInfo()
@@ -48,9 +50,12 @@
 #include "llviewerassetupload.h"
 #include "llviewercontrol.h"
 #include "llviewerregion.h"
+#include "llfloaterreg.h"
+#include "llversioninfo.h"
+#include "llviewernetwork.h"
 
 #if OPENSIM
-#include "llviewernetwork.h"
+// (llviewernetwork.h already included above for LLGridManager; kept for clarity)
 #endif
 
 static const std::string FS_BRIDGE_FOLDER = "#LSL Bridge";
@@ -83,6 +88,49 @@ private:
     std::string sName;
 };
 
+// Real IBridgeEnvironment implementation: routes command-handler I/O to the
+// live viewer. Holds a reference back to the bridge for viewerToLSL replies.
+namespace
+{
+class FSViewerBridgeEnvironment : public IBridgeEnvironment
+{
+public:
+    explicit FSViewerBridgeEnvironment(FSLSLBridge& bridge) : mBridge(bridge) {}
+
+    std::optional<std::string> getSettingValue(const std::string& key) const override
+    {
+        LLControlVariable* ctrl = gSavedSettings.getControl(key);
+        if (!ctrl)
+        {
+            ctrl = gSavedPerAccountSettings.getControl(key);
+        }
+        if (!ctrl)
+        {
+            return std::nullopt;
+        }
+        return ctrl->getValue().asString();
+    }
+
+    void sendToLSL(const std::string& message) override { mBridge.viewerToLSL(message); }
+
+    void showAlert(const std::string& message) override
+    {
+        LLSD args;
+        args["MESSAGE"] = message;
+        LLNotificationsUtil::add("GenericAlert", args);
+    }
+
+    void toggleFloater(const std::string& name) override { LLFloaterReg::toggleInstance(name); }
+
+    std::string getVersion() const override   { return LLVersionInfo::instance().getVersion(); }
+    std::string getChannel() const override   { return LLVersionInfo::instance().getChannel(); }
+    std::string getGridLabel() const override { return LLGridManager::getInstance()->getGridLabel(); }
+
+private:
+    FSLSLBridge& mBridge;
+};
+}
+
 //
 //
 // Bridge functionality
@@ -99,12 +147,20 @@ FSLSLBridge::FSLSLBridge():
     LL_INFOS("FSLSLBridge") << "Constructing FSLSLBridge" << LL_ENDL;
     mCurrentFullName = llformat("%s%d.%d", FS_BRIDGE_NAME.c_str(), FS_BRIDGE_MAJOR_VERSION, FS_BRIDGE_MINOR_VERSION);
 
+    mBridgeEnv = std::make_unique<FSViewerBridgeEnvironment>(*this);
+    mCommandHandler = std::make_unique<FSBridgeCommandHandler>(*mBridgeEnv);
+
     gIdleCallbacks.addFunction(onIdle, this);
 }
 
 FSLSLBridge::~FSLSLBridge()
 {
     gIdleCallbacks.deleteFunction(onIdle, this);
+}
+
+void FSLSLBridge::initSingleton()
+{
+    gAppContext.lslBridge = this;
 }
 
 void FSLSLBridge::onIdle(void* userdata)
@@ -577,6 +633,18 @@ bool FSLSLBridge::lslToViewer(std::string_view message, const LLUUID& fromID, co
         }
         status = true;
     }
+
+    // <FS:Bridge> Extended command surface — read-only viewer state queries.
+    // The parsing/allowlist/truncation logic lives in FSBridgeCommandHandler so
+    // it can be unit-tested; see fsbridgecommandhandler.{h,cpp}. This delegation
+    // sits *after* the bridge-identity gate above, so these commands are only
+    // reachable from the genuine bridge object.
+    else if (mCommandHandler->handle(message))
+    {
+        status = true;
+    }
+
+    // </FS:Bridge>
 
     return status;
 }

@@ -36,8 +36,6 @@
 #include "llui.h"
 #include "llviewercontrol.h"
 
-#include <boost/regex.hpp>
-
 FSKeywords::FSKeywords()
 {
     gSavedPerAccountSettings.getControl("FSKeywords")->getSignal()->connect(boost::bind(&FSKeywords::updateKeywords, this));
@@ -48,34 +46,17 @@ FSKeywords::FSKeywords()
 
 void FSKeywords::updateKeywords()
 {
-    bool match_whole_words = gSavedPerAccountSettings.getBOOL("FSKeywordMatchWholeWords");
-    std::string s = gSavedPerAccountSettings.getString("FSKeywords");
-    if (!gSavedPerAccountSettings.getBOOL("FSKeywordCaseSensitive"))
-    {
-        LLStringUtil::toLower(s);
-    }
-    boost::regex re(",");
-    boost::sregex_token_iterator begin(s.begin(), s.end(), re, -1), end;
-    mWordList.clear();
-    while (begin != end)
-    {
-        std::string token(*begin++);
-        LLStringUtil::trim(token);
-
-        if (match_whole_words)
-        {
-            mWordList.push_back(boost::regex_replace(token, boost::regex("[.^$|()\\[\\]{}*+?\\\\]"), "\\\\&", boost::match_default|boost::format_sed));
-        }
-        else
-        {
-            mWordList.push_back(token);
-        }
-    }
+    // The matcher bakes in the case-sensitivity and whole-word settings at build
+    // time; it is rebuilt whenever any of these settings change (see the signal
+    // connections in the constructor).
+    const bool case_sensitive   = gSavedPerAccountSettings.getBOOL("FSKeywordCaseSensitive");
+    const bool match_whole_words = gSavedPerAccountSettings.getBOOL("FSKeywordMatchWholeWords");
+    const std::string csv        = gSavedPerAccountSettings.getString("FSKeywords");
+    mMatcher = FSKeywordMatcher(csv, case_sensitive, match_whole_words);
 }
 
 bool FSKeywords::chatContainsKeyword(const LLChat& chat, bool is_local)
 {
-
     // Don't check if message is from us - unless it's a radar notification
     if (chat.mFromID == gAgentID && chat.mFromName != SYSTEM_FROM)
     {
@@ -95,47 +76,11 @@ bool FSKeywords::chatContainsKeyword(const LLChat& chat, bool is_local)
 
     static LLCachedControl<bool> sFSKeywordSpeakersName(gSavedPerAccountSettings, "FSKeywordSpeakersName", false);
 
-    std::string source;
-    if (sFSKeywordSpeakersName)
-    {
-        source = chat.mFromName + " " + chat.mText;
-    }
-    else
-    {
-        source = chat.mText;
-    }
+    const std::string source = sFSKeywordSpeakersName
+        ? (chat.mFromName + " " + chat.mText)
+        : chat.mText;
 
-    static LLCachedControl<bool> sFSKeywordCaseSensitive(gSavedPerAccountSettings, "FSKeywordCaseSensitive", false);
-
-    if (!sFSKeywordCaseSensitive)
-    {
-        LLStringUtil::toLower(source);
-    }
-
-    static LLCachedControl<bool> sFSKeywordMatchWholeWords(gSavedPerAccountSettings, "FSKeywordMatchWholeWords", false);
-
-    if (sFSKeywordMatchWholeWords)
-    {
-        for (const auto& word : mWordList)
-        {
-            if (boost::regex_search(source, boost::regex("\\b" + word + "\\b")))
-            {
-                return true;
-            }
-        }
-    }
-    else
-    {
-        for (const auto& word : mWordList)
-        {
-            if (source.find(word) != std::string::npos)
-            {
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return mMatcher.matches(source);
 }
 
 // <FS:PP> FIRE-10178: Keyword Alerts in group IM do not work unless the group is in the foreground

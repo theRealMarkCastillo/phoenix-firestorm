@@ -92,6 +92,7 @@ set(viewer_SOURCE_FILES
     ao.cpp
     aoengine.cpp
     aoset.cpp
+    appcontext.cpp
     chatbar_as_cmdline.cpp
     daeexport.cpp
     dialogstack.cpp
@@ -106,6 +107,7 @@ set(viewer_SOURCE_FILES
     fsavatarrenderpersistence.cpp
     fsavatarsearchmenu.cpp
     fsblocklistmenu.cpp
+    fsbridgecommandhandler.cpp
     fschathistory.cpp
     fschatoptionsmenu.cpp
     fscommon.cpp
@@ -149,6 +151,7 @@ set(viewer_SOURCE_FILES
     fsfloaterwhitelisthelper.cpp
     fsjointpose.cpp
     fskeywords.cpp
+    fskeywordmatcher.cpp
     fslslbridge.cpp
     fslslbridgerequest.cpp
     fslslpreproc.cpp
@@ -952,6 +955,8 @@ set(viewer_HEADER_FILES
     ao.h
     aoengine.h
     aoset.h
+    appcontext.h
+    iaoengine.h
     chatbar_as_cmdline.h
     daeexport.h
     dialogstack.h
@@ -961,11 +966,13 @@ set(viewer_HEADER_FILES
     exogroupmutelist.h
     floatermedialists.h
     fsareasearch.h
+    fsareasearch.gen.h
     fsareasearchmenu.h
     fsassetblacklist.h
     fsavatarrenderpersistence.h
     fsavatarsearchmenu.h
     fsblocklistmenu.h
+    fsbridgecommandhandler.h
     fschathistory.h
     fschatoptionsmenu.h
     fschatparticipants.h
@@ -1012,6 +1019,7 @@ set(viewer_HEADER_FILES
     fsjointpose.h
     fsgridhandler.h
     fskeywords.h
+    fskeywordmatcher.h
     fslslbridge.h
     fslslbridgerequest.h
     fslslpreproc.h
@@ -3170,6 +3178,86 @@ if (LL_TESTS)
   #ADD_VIEWER_BUILD_TEST(lltextureinfo viewer)
   #ADD_VIEWER_BUILD_TEST(lltextureinfodetails viewer)
 
+  # ── Catch2 unit tests (Firestorm-specific, separate from TUT) ───────────────
+  # These are dependency-light unit tests that exercise the AppContext seam.
+  # They link against llcommon (for LLUUID) and the tiny appcontext.cpp; no
+  # newview machinery is required, so they build fast and run in isolation.
+  include(Catch2)
+  if(CATCH2_AVAILABLE)
+      add_executable(fs_appcontext_test
+          tests/catch2/appcontext_test.cpp
+          appcontext.cpp
+      )
+      target_compile_definitions(fs_appcontext_test PRIVATE
+          FS_APPCONTEXT_TEST_BUILD
+      )
+      target_include_directories(fs_appcontext_test PRIVATE
+          ${CMAKE_CURRENT_SOURCE_DIR}
+          ${CATCH2_INCLUDE_DIR}
+      )
+      target_link_libraries(fs_appcontext_test PRIVATE llcommon)
+      set_target_properties(fs_appcontext_test PROPERTIES
+          CXX_STANDARD 20
+          # Skip the viewer's PCH — this test is self-contained.
+          DISABLE_PRECOMPILE_HEADERS ON
+      )
+      add_test(NAME fs_appcontext_test COMMAND fs_appcontext_test)
+
+      add_executable(fs_bridgecommandhandler_test
+          tests/catch2/fsbridgecommandhandler_test.cpp
+          fsbridgecommandhandler.cpp
+      )
+      target_compile_definitions(fs_bridgecommandhandler_test PRIVATE
+          FS_BRIDGE_HANDLER_TEST_BUILD
+      )
+      target_include_directories(fs_bridgecommandhandler_test PRIVATE
+          ${CMAKE_CURRENT_SOURCE_DIR}
+          ${CATCH2_INCLUDE_DIR}
+      )
+      target_link_libraries(fs_bridgecommandhandler_test PRIVATE llcommon)
+      set_target_properties(fs_bridgecommandhandler_test PROPERTIES
+          CXX_STANDARD 20
+          DISABLE_PRECOMPILE_HEADERS ON
+      )
+      add_test(NAME fs_bridgecommandhandler_test COMMAND fs_bridgecommandhandler_test)
+
+      add_executable(fs_keywordmatcher_test
+          tests/catch2/fskeywordmatcher_test.cpp
+          fskeywordmatcher.cpp
+      )
+      target_compile_definitions(fs_keywordmatcher_test PRIVATE
+          FS_KEYWORD_MATCHER_TEST_BUILD
+      )
+      target_include_directories(fs_keywordmatcher_test PRIVATE
+          ${CMAKE_CURRENT_SOURCE_DIR}
+          ${CATCH2_INCLUDE_DIR}
+      )
+      target_link_libraries(fs_keywordmatcher_test PRIVATE llcommon)
+      set_target_properties(fs_keywordmatcher_test PROPERTIES
+          CXX_STANDARD 20
+          DISABLE_PRECOMPILE_HEADERS ON
+      )
+      add_test(NAME fs_keywordmatcher_test COMMAND fs_keywordmatcher_test)
+
+      # Convenience aggregate: `cmake --build . --target fs_tests` builds and runs
+      # every Firestorm Catch2 suite in sequence. Add new test targets to both
+      # lists below as they are created.
+      set(fs_catch2_test_targets
+          fs_appcontext_test
+          fs_bridgecommandhandler_test
+          fs_keywordmatcher_test
+      )
+      add_custom_target(fs_tests
+          COMMAND $<TARGET_FILE:fs_appcontext_test>
+          COMMAND $<TARGET_FILE:fs_bridgecommandhandler_test>
+          COMMAND $<TARGET_FILE:fs_keywordmatcher_test>
+          COMMENT "Running all Firestorm Catch2 unit tests"
+          VERBATIM
+      )
+      add_dependencies(fs_tests ${fs_catch2_test_targets})
+  else()
+      message(STATUS "Catch2 not available — skipping fs_appcontext_test")
+  endif()
 
 endif (LL_TESTS)
 
