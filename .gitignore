@@ -130,3 +130,6 @@ firestorm.code-workspace
 .github/release.yaml
 
 checks.json
+
+# Keep machine-specific configuration and generated local artifacts out of Git.
+.DS_Store
